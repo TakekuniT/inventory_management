@@ -51,6 +51,8 @@ h1 {
   flex-direction: column;
   gap: 15px;
   transform: translate(-50%, -50%);
+  overflow-y: auto;
+  max-height: 80vh; 
 }
 
 .controls {

@@ -22,6 +22,9 @@ export default function Home() {
   const [identifiedObject, setIdentifiedObject] = useState(''); // State to store identified object
   const [identificationLoading, setIdentificationLoading] = useState(false); // Loading state for identification process
 
+  const [aiMessage, setAiMessage] = useState('');
+  const [showAiModal, setShowAiModal] = useState(false);
+
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, 'inventory'));
     const docs = await getDocs(snapshot);
@@ -160,7 +163,10 @@ export default function Home() {
   
       let resultString = items.map(item => `${item.name}: ${item.quantity}`).join(', ');
       resultString = 'Suggest me a recipe with the following ingredients: ' + resultString;
-      alert(await getChatResponse(resultString));
+      const ai_msg = await getChatResponse(resultString);
+      
+      setAiMessage(ai_msg);
+      setShowAiModal(true);
       
       return resultString;
     } catch (error) {
@@ -196,6 +202,22 @@ export default function Home() {
         StockKeeper
       </Typography>
       {showCamera && <CameraComponent />}
+      <Modal open={showAiModal} onClose={() => setShowAiModal(false)}>
+        <Box className="modal-box">
+          <Typography variant="h6">
+            AI Response
+          </Typography>
+          <Typography variant="body1" style={{ whiteSpace: 'pre-wrap' }}>
+            {aiMessage}
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={() => setShowAiModal(false)}
+          >
+            Close
+          </Button>
+        </Box>
+      </Modal>
       <Modal open={open} onClose={handleClose}>
         <Box className="modal-box">
           <Typography variant="h6">
@@ -240,7 +262,7 @@ export default function Home() {
           </Stack>
         </Box>
       </Modal>
-      <Box className="controls">
+      <Box className="controls"  gap={3}>
         <TextField
           variant="outlined"
           fullWidth
@@ -256,7 +278,7 @@ export default function Home() {
         >
           Add New
         </Button>
-        {/* Uncomment when needed
+        
         <Button
           variant="contained"
           onClick={() => {
@@ -265,6 +287,7 @@ export default function Home() {
         >
           Get Recipe
         </Button>
+        {/*
         <Button 
           variant="contained"
           onClick={() => {

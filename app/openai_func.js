@@ -4,12 +4,39 @@ dotenv.config()
 
 import { OpenAI} from 'openai';
 
+import Groq from "groq-sdk";
+
+// Initialize Groq with your API key
+const groq = new Groq({ 
+    apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
+    dangerouslyAllowBrowser: true
+ });
+
+export async function getChatResponse(promptText) {
+    try {
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "user",
+                    content: promptText,
+                },
+            ],
+            model: "llama3-8b-8192", // Make sure this model name is correct for Groq
+        });
+
+        return chatCompletion.choices[0]?.message?.content || "";
+    } catch (error) {
+        console.error("Error getting chat response:", error);
+        return "An error occurred while processing the request.";
+    }
+}
+
 //const openai = new OpenAI();
 const openai = new OpenAI({
     apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY, // Fallback API key
     dangerouslyAllowBrowser: true 
   });
-
+/*
 export async function getChatResponse(promptText) {
     const chatResponse = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -25,7 +52,7 @@ export async function getChatResponse(promptText) {
     });
 
     return chatResponse.data.choices[0].message.content;
-}
+}*/
 
 
 
