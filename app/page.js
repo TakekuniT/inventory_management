@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { firestore } from "@/firebase";
 import { Container, Box, Modal, Typography, Stack, TextField, Button, CircularProgress } from '@mui/material'
 import { collection, deleteDoc, doc, setDoc, getDocs, query, getDoc } from "firebase/firestore";
+import { Camera } from "react-camera-pro";
+import { identifyObjectFromCamera, getChatResponse } from './openai_func';
 
 export default function Home() {
   const [inventory, setInventory] = useState([]);
@@ -15,6 +17,11 @@ export default function Home() {
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [currentItem, setCurrentItem] = useState(null); // Store the item being edited
   const [itemCount, setItemCount] = useState(''); 
+  const [showCamera, setShowCamera] = useState(false); // New state to control camera visibility
+  const [image, setImage] = useState(null); // New state to store the image
+  const [identifiedObject, setIdentifiedObject] = useState(''); // State to store identified object
+  const [identificationLoading, setIdentificationLoading] = useState(false); // Loading state for identification process
+
 
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, 'inventory'));
@@ -97,6 +104,62 @@ export default function Home() {
     setLoading(false);
   };
 
+
+  const CameraComponent = () => {
+    const camera = useRef(null);
+
+    const takePhoto = async () => {
+      const img = camera.current.takePhoto();
+      setImage(img); // Save the image taken
+      setShowCamera(false); // Hide camera after photo
+
+      // Call the identifyObjectFromCamera function with the captured image
+      try {
+        setIdentificationLoading(true); // Start identification loading indicator
+        const identifiedObj = await identifyObjectFromCamera(img); // Pass the image to the function
+        setIdentifiedObject(identifiedObj); // Save the identified object
+        setIdentificationLoading(false); // Stop identification loading indicator
+
+        // Optionally, automatically add the identified object to the inventory
+        if (identifiedObj) {
+          await addItem(identifiedObj);
+          alert(`Identified and added: ${identifiedObj}`); // Show alert with the identified object
+        } else {
+          alert('Unable to identify the object. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error identifying object:', error);
+        alert('Failed to identify the object.');
+        setIdentificationLoading(false);
+      }
+    };
+
+    return (
+      <Box
+        position="fixed"
+        top="0"
+        left="0"
+        width="100vw"
+        height="100vh"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        bgcolor="rgba(0,0,0,0.8)"
+        zIndex="1300" // Ensure camera overlay appears on top
+      >
+        <Camera ref={camera} />
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={takePhoto}
+        >
+          Take photo
+        </Button>
+      </Box>
+    );
+  };
+
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       updateInventory();
@@ -128,6 +191,7 @@ export default function Home() {
       alignItems="center"
       gap={2}
     >
+      {showCamera && <CameraComponent />}
       <Modal open={open} onClose={handleClose}>
         <Box
           position="absolute"
@@ -210,6 +274,16 @@ export default function Home() {
         >
           Add New
         </Button>
+        {/*
+        <Button 
+          variant="contained"
+          onClick={() => {
+            setShowCamera(true);
+          }}
+        >
+          Scan Item
+        </Button> 
+        */}
       </Box>
 
       <Box border="1px solid #333">
