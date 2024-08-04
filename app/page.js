@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { firestore } from "@/firebase";
-import { Container, Box, Modal, Typography, Stack, TextField, Button, CircularProgress } from '@mui/material'
+import { Container, Box, Modal, Typography, Stack, TextField, Button, CircularProgress } from '@mui/material';
 import { collection, deleteDoc, doc, setDoc, getDocs, query, getDoc } from "firebase/firestore";
 import { Camera } from "react-camera-pro";
 import { identifyObjectFromCamera, getChatResponse } from './openai_func';
@@ -16,12 +16,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [currentItem, setCurrentItem] = useState(null); // Store the item being edited
-  const [itemCount, setItemCount] = useState(''); 
+  const [itemCount, setItemCount] = useState('');
   const [showCamera, setShowCamera] = useState(false); // New state to control camera visibility
   const [image, setImage] = useState(null); // New state to store the image
   const [identifiedObject, setIdentifiedObject] = useState(''); // State to store identified object
   const [identificationLoading, setIdentificationLoading] = useState(false); // Loading state for identification process
-
 
   const updateInventory = async () => {
     const snapshot = query(collection(firestore, 'inventory'));
@@ -104,7 +103,6 @@ export default function Home() {
     setLoading(false);
   };
 
-
   const CameraComponent = () => {
     const camera = useRef(null);
 
@@ -135,18 +133,7 @@ export default function Home() {
     };
 
     return (
-      <Box
-        position="fixed"
-        top="0"
-        left="0"
-        width="100vw"
-        height="100vh"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        bgcolor="rgba(0,0,0,0.8)"
-        zIndex="1300" // Ensure camera overlay appears on top
-      >
+      <Box className="camera-overlay">
         <Camera ref={camera} />
         <Button
           variant="contained"
@@ -159,6 +146,28 @@ export default function Home() {
     );
   };
 
+  const fetchItemNamesWithQuantities = async () => {
+    try {
+      const snapshot = await getDocs(collection(firestore, 'inventory'));
+  
+      const items = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          name: doc.id,
+          quantity: data.quantity,
+        };
+      });
+  
+      let resultString = items.map(item => `${item.name}: ${item.quantity}`).join(', ');
+      resultString = 'Suggest me a recipe with the following ingredients: ' + resultString;
+      alert(await getChatResponse(resultString));
+      
+      return resultString;
+    } catch (error) {
+      console.error('Error fetching item names with quantities:', error);
+      return 'Error fetching item data.';
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -169,8 +178,8 @@ export default function Home() {
   const handleOpen = (mode, item = null, count = 0) => {
     setModalMode(mode);
     setCurrentItem(item);
-    setItemName(item?.name || ''); // Pre-fill the item name when editing
-    setItemCount(count || ''); // Pre-fill the item count when editing
+    setItemName(item?.name || ''); 
+    setItemCount(count || ''); 
     setOpen(true);
   };
 
@@ -182,33 +191,13 @@ export default function Home() {
   };
 
   return (
-    <Box
-      width="100vw"
-      height="100vh"
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="center"
-      gap={2}
-    >
+    <Container maxWidth="lg" className="home-container">
+      <Typography variant="h1">
+        StockKeeper
+      </Typography>
       {showCamera && <CameraComponent />}
       <Modal open={open} onClose={handleClose}>
-        <Box
-          position="absolute"
-          top="50%"
-          left="50%"
-          width={400}
-          bgcolor="white"
-          border="2px solid #000"
-          boxShadow={24}
-          p={4}
-          display="flex"
-          flexDirection="column"
-          gap={3}
-          sx={{
-            transform: 'translate(-50%,-50%)',
-          }}
-        >
+        <Box className="modal-box">
           <Typography variant="h6">
             {modalMode === 'add' ? 'Add Item' : 'Edit Item'}
           </Typography>
@@ -221,7 +210,7 @@ export default function Home() {
               onChange={(e) => {
                 setItemName(e.target.value);
               }}
-              disabled={modalMode === 'edit'} // Disable editing of item name
+              disabled={modalMode === 'edit'} 
             />
             <TextField
               variant="outlined"
@@ -239,7 +228,7 @@ export default function Home() {
                 if (modalMode === 'add') {
                   addItem(itemName);
                 } else {
-                  editItem(itemName, Number(itemCount)); // Pass the item name and new count
+                  editItem(itemName, Number(itemCount));
                 }
                 setItemName('');
                 setItemCount('');
@@ -251,21 +240,14 @@ export default function Home() {
           </Stack>
         </Box>
       </Modal>
-      <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="start"
-        spacing={5}
-        gap={5}
-      >
+      <Box className="controls">
         <TextField
           variant="outlined"
           fullWidth
           label="Search Inventory"
           value={searchQuery}
-          onChange={handleSearchChange} // Update search results in real-time
+          onChange={handleSearchChange}
         />
-
         <Button
           variant="contained"
           onClick={() => {
@@ -274,7 +256,15 @@ export default function Home() {
         >
           Add New
         </Button>
-        {/*
+        {/* Uncomment when needed
+        <Button
+          variant="contained"
+          onClick={() => {
+            fetchItemNamesWithQuantities();
+          }}
+        >
+          Get Recipe
+        </Button>
         <Button 
           variant="contained"
           onClick={() => {
@@ -282,43 +272,28 @@ export default function Home() {
           }}
         >
           Scan Item
-        </Button> 
+        </Button>
         */}
       </Box>
-
-      <Box border="1px solid #333">
-        <Box
-          width="800px"
-          height="100px"
-          bgcolor="#ADD8E6"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Typography variant="h2" color="#333">
+      <Box className="inventory-section">
+        <Box className="inventory-header">
+          <Typography variant="h2">
             Inventory Items
           </Typography>
         </Box>
-
         {loading ? (
-          <CircularProgress sx={{ mt: 2 }} />
+          <CircularProgress className="loading-spinner" />
         ) : (
-          <Stack width="800px" height="300px" spacing={2} overflow="auto">
+          <Stack className="inventory-list">
             {filteredInventory.map(({ name, quantity }) => (
               <Box
                 key={name}
-                width="100%"
-                minHeight="150px"
-                display="flex"
-                alignItems="center"
-                justifyContent="space-between"
-                bgColor="#f0f0f0"
-                padding={5}
+                className="inventory-item"
               >
-                <Typography variant="h3" color="#333" textAlign="center">
+                <Typography variant="h3" className="item-name">
                   {name.charAt(0).toUpperCase() + name.slice(1)}
                 </Typography>
-                <Typography variant="h3" color="#333" textAlign="center">
+                <Typography variant="h3" className="item-quantity">
                   {quantity}
                 </Typography>
                 <Stack direction="row" spacing={2}>
@@ -352,6 +327,6 @@ export default function Home() {
           </Stack>
         )}
       </Box>
-    </Box>
+    </Container>
   );
 }
